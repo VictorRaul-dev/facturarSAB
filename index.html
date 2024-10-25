@@ -223,183 +223,191 @@ f<!DOCTYPE html>
     </div>
 
     <script>
-        document.getElementById('previewButton').addEventListener('click', function () {
-            const destinatario = document.getElementById('destinatario').value;
-            const contactEmail = document.getElementById('contactEmail').value;
-            const tableData = getTableData();
-            const totalIntereses = document.getElementById('totalIntereses').textContent;
+// Inicialización de EmailJS - Asegúrate de reemplazar 'TU_PUBLIC_KEY' con tu Public Key de EmailJS
+(function() {
+   emailjs.init('M88PzqekuDz-tvIYZ'); // Reemplaza 'TU_PUBLIC_KEY' con tu Public Key
+})();
 
-            if (!destinatario || !contactEmail || tableData.length === 0) {
-                alert('Por favor, complete todos los campos requeridos.');
-                return;
-            }
+// Lógica de previsualización y envío de correos
+document.getElementById('previewButton').addEventListener('click', function () {
+    const destinatario = document.getElementById('destinatario').value;
+    const contactEmail = document.getElementById('contactEmail').value;
+    const tableData = getTableData();
+    const totalIntereses = document.getElementById('totalIntereses').textContent;
 
-            // Extraer datos para el asunto del correo
-            const xObligado = tableData[0][3] || "Desconocido";
-            const xCliente = tableData[0][2] || "Desconocido";
-            const vencimiento = tableData[0][6];
-            const formattedDate = vencimiento ? new Date(vencimiento).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: '2-digit'
-            }) : "00.00.00";
+    if (!destinatario || !contactEmail || tableData.length === 0) {
+        alert('Por favor, complete todos los campos requeridos.');
+        return;
+    }
 
-            const subject = `FACTURAR SAB: ${xObligado} - ${xCliente} FV.${formattedDate}`;
+    // Extraer datos para el asunto del correo
+    const xObligado = tableData[0][3] || "Desconocido";
+    const xCliente = tableData[0][2] || "Desconocido";
+    const vencimiento = tableData[0][6];
+    const formattedDate = vencimiento ? new Date(vencimiento).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+    }) : "00.00.00";
 
-            // Construir el cuerpo del correo
-            const emailBody = `
-                Estimados, buen día<br><br>
-                Favor de facturar SIN IGV al ${destinatario} por ${totalIntereses}, por interés de FACTURAS VENCIDAS.<br><br>
-                <table border="1" style="border-collapse: collapse; width: 100%;">
+    const subject = `FACTURAR SAB: ${xObligado} - ${xCliente} FV.${formattedDate}`;
+
+    // Construir el cuerpo del correo con HTML
+    const emailBody = `
+        <p>Estimados, buen día</p>
+        <p>Favor de facturar SIN IGV al ${destinatario} por ${totalIntereses}, por interés de FACTURAS VENCIDAS.</p>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr>
+                    <th>Documento</th>
+                    <th>RUC Cliente</th>
+                    <th>Cliente</th>
+                    <th>Obligado</th>
+                    <th>Nro Doc</th>
+                    <th>Valor Nominal</th>
+                    <th>Vencimiento</th>
+                    <th>Intereses</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableData.map(row => `
                     <tr>
-                        <th>Documento</th>
-                        <th>RUC Cliente</th>
-                        <th>Cliente</th>
-                        <th>Obligado</th>
-                        <th>Nro Doc</th>
-                        <th>Valor Nominal</th>
-                        <th>Vencimiento</th>
-                        <th>Intereses</th>
+                        <td>${row[0]}</td>
+                        <td>${row[1]}</td>
+                        <td>${row[2]}</td>
+                        <td>${row[3]}</td>
+                        <td>${row[4]}</td>
+                        <td>${row[5]}</td>
+                        <td>${row[6]}</td>
+                        <td>${row[7]}</td>
                     </tr>
-                    ${tableData.map(row => `
-                        <tr>
-                            <td>${row[0]}</td>
-                            <td>${row[1]}</td>
-                            <td>${row[2]}</td>
-                            <td>${row[3]}</td>
-                            <td>${row[4]}</td>
-                            <td>${row[5]}</td>
-                            <td>${row[6]}</td>
-                            <td>${row[7]}</td>
-                        </tr>
-                    `).join('')}
-                </table><br>
-                Contacto: ${contactEmail}<br><br>
-                Saludos,<br>
-                [Firma del Usuario]
-            `;
+                `).join('')}
+            </tbody>
+        </table>
+        <p>Contacto: ${contactEmail}</p>
+        <br>
+        <p>Saludos,</p>
+        <p>[Firma del Usuario]</p>
+    `;
 
-            // Mostrar previsualización en el modal
-            document.getElementById('emailPreviewContent').innerHTML = `
-                <p><strong>Asunto:</strong> ${subject}</p>
-                ${emailBody}
-            `;
-            openModal();
+    // Mostrar previsualización en el modal
+    document.getElementById('emailPreviewContent').innerHTML = `
+        <p><strong>Asunto:</strong> ${subject}</p>
+        ${emailBody}
+    `;
+    openModal();
 
-            // Evento para enviar el correo después de la previsualización
-            document.getElementById('sendEmailButton').onclick = function () {
-                sendEmail(subject, emailBody);
-            };
+    // Evento para enviar el correo después de la previsualización
+    document.getElementById('sendEmailButton').onclick = function () {
+        sendEmail(subject, emailBody, destinatario, totalIntereses, contactEmail);
+    };
+});
+
+// Función para extraer los datos de la tabla
+function getTableData() {
+    const rows = document.querySelectorAll('#dataTable tbody tr');
+    let data = [];
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td input');
+        const rowData = Array.from(cells).map(cell => cell.value.trim());
+
+        // Solo incluir filas que tienen datos
+        if (rowData.some(cell => cell !== "")) {
+            data.push(rowData);
+        }
+    });
+
+    return data;
+}
+
+// Función para calcular el total de intereses
+function updateTotal() {
+    const interesesCells = document.querySelectorAll('.intereses');
+    let total = 0;
+
+    interesesCells.forEach(cell => {
+        const value = parseFloat(cell.value);
+        if (!isNaN(value)) {
+            total += value;
+        }
+    });
+
+    document.getElementById('totalIntereses').textContent = `S/ ${total.toFixed(2)}`;
+}
+
+// Manejo del Modal
+function openModal() {
+    document.getElementById('previewModal').style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById('previewModal').style.display = "none";
+}
+
+document.querySelector('.close').onclick = closeModal;
+window.onclick = function (event) {
+    if (event.target == document.getElementById('previewModal')) {
+        closeModal();
+    }
+};
+
+// Función para enviar el correo con EmailJS
+function sendEmail(subject, bodyContent, destinatario, totalIntereses, contactEmail) {
+    const ccEmails = ["rhalo.451@gmail.com", "bakoasistentev@gmail.com"];
+
+    // Datos que serán enviados a través de EmailJS
+    const templateParams = {
+        to_email: destinatario,             // Destinatario principal del correo
+        cc_emails: ccEmails.join(','),      // Convertir la lista de CC a un solo string separado por comas
+        subject: subject,                   // Asunto del correo
+        message_html: bodyContent,          // Cuerpo del correo con la tabla HTML
+        destinatario: destinatario,         // Variable para el destinatario
+        total_intereses: totalIntereses,    // Monto total de intereses
+        contact_email: contactEmail         // Correo de contacto proporcionado por el usuario
+    };
+
+    // Llamada a EmailJS para enviar el correo
+    emailjs.send('service_dgfjbzr', 'template_aza06w4', templateParams)
+        .then(function (response) {
+            alert('Correo enviado correctamente.');
+            console.log('SUCCESS!', response.status, response.text);
+        }, function (error) {
+            alert('Error al enviar el correo.');
+            console.error('FAILED...', error);
         });
+}
 
-        function getTableData() {
-            const rows = document.querySelectorAll('#dataTable tbody tr');
-            let data = [];
+// Permitir pegado directo desde Excel (incluye fechas)
+document.getElementById('dataTable').addEventListener('paste', function (event) {
+    event.preventDefault();
+    const clipboardData = event.clipboardData || window.clipboardData;
+    const pastedData = clipboardData.getData('Text').split('\n');
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td input');
-                const rowData = Array.from(cells).map(cell => cell.value.trim());
-
-                // Solo incluir filas que tienen datos
-                if (rowData.some(cell => cell !== "")) {
-                    data.push(rowData);
-                }
-            });
-
-            return data;
-        }
-
-        function updateTotal() {
-            const interesesCells = document.querySelectorAll('.intereses');
-            let total = 0;
-
-            interesesCells.forEach(cell => {
-                const value = parseFloat(cell.value);
-                if (!isNaN(value)) {
-                    total += value;
-                }
-            });
-
-            document.getElementById('totalIntereses').textContent = `S/ ${total.toFixed(2)}`;
-        }
-
-        // Modal Handling
-        function openModal() {
-            document.getElementById('previewModal').style.display = "block";
-        }
-
-        function closeModal() {
-            document.getElementById('previewModal').style.display = "none";
-        }
-
-        document.querySelector('.close').onclick = closeModal;
-        window.onclick = function (event) {
-            if (event.target == document.getElementById('previewModal')) {
-                closeModal();
-            }
-        };
-
-        // Modificar la función para enviar el correo con EmailJS
-        function sendEmail(subject, bodyContent, destinatario, totalIntereses, contactEmail) {
-            const ccEmails = ["rhalo.451@gmail.com", "bakoasistentev@gmail.com"];
-
-            // Datos que serán enviados a través de EmailJS
-            const templateParams = {
-                to_email: destinatario,             // Destinatario principal del correo
-                cc_emails: ccEmails.join(','),      // Convertir la lista de CC a un solo string separado por comas
-                subject: subject,                   // Asunto del correo
-                message_html: bodyContent,          // Cuerpo del correo con la tabla HTML
-                destinatario: destinatario,         // Variable para el destinatario
-                total_intereses: totalIntereses,    // Monto total de intereses
-                contact_email: contactEmail         // Correo de contacto proporcionado por el usuario
-            };
-
-            // Llamada a EmailJS para enviar el correo
-            emailjs.send('service_dgfjbzr', 'template_aza06w4', templateParams)
-                .then(function (response) {
-                    alert('Correo enviado correctamente.');
-                    console.log('SUCCESS!', response.status, response.text);
-                }, function (error) {
-                    alert('Error al enviar el correo.');
-                    console.error('FAILED...', error);
-                });
-        }
-
-        // Evento para enviar el correo después de la previsualización
-        document.getElementById('sendEmailButton').onclick = function () {
-            sendEmail(subject, emailBody, destinatario, totalIntereses, contactEmail);
-        };
-
-
-        // Permitir pegado directo desde Excel (incluye fechas)
-        document.getElementById('dataTable').addEventListener('paste', function (event) {
-            event.preventDefault();
-            const clipboardData = event.clipboardData || window.clipboardData;
-            const pastedData = clipboardData.getData('Text').split('\n');
-
-            const rows = document.querySelectorAll('#dataTable tbody tr');
-            pastedData.forEach((rowData, index) => {
-                if (index < rows.length) {
-                    const cells = rowData.split('\t');
-                    const inputs = rows[index].querySelectorAll('td input');
-                    cells.forEach((cell, cellIndex) => {
-                        if (cellIndex < inputs.length) {
-                            if (inputs[cellIndex].type === 'date') {
-                                // Convertir fecha en formato adecuado si es necesario
-                                const dateValue = new Date(cell.trim());
-                                if (!isNaN(dateValue)) {
-                                    inputs[cellIndex].value = dateValue.toISOString().split('T')[0];
-                                }
-                            } else {
-                                inputs[cellIndex].value = cell.trim();
-                            }
+    const rows = document.querySelectorAll('#dataTable tbody tr');
+    pastedData.forEach((rowData, index) => {
+        if (index < rows.length) {
+            const cells = rowData.split('\t');
+            const inputs = rows[index].querySelectorAll('td input');
+            cells.forEach((cell, cellIndex) => {
+                if (cellIndex < inputs.length) {
+                    if (inputs[cellIndex].type === 'date') {
+                        // Convertir fecha en formato adecuado si es necesario
+                        const dateValue = new Date(cell.trim());
+                        if (!isNaN(dateValue)) {
+                            inputs[cellIndex].value = dateValue.toISOString().split('T')[0];
                         }
-                    });
+                    } else {
+                        inputs[cellIndex].value = cell.trim();
+                    }
                 }
             });
+        }
+    });
 
-            updateTotal();
-        });
+    updateTotal();
+});
+
     </script>
 </body>
 
